@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard</title>
+
+    <style>
+      /* Estilos para a modal */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.4);
+      }
+
+      .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 500px;
+      }
+
+      .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+      }
+
+      .close:hover,
+      .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Dashboard</h1>
+
+    <p>Cargo: <span id="cargo"></span></p>
+
+    <button onclick="openFuncionarioModal()">Adicionar Funcionário</button>
+    <button onclick="openDespesaModal()" id="cadastrarDespesa">
+      Cadastrar Despesa
+    </button>
+
+    <button onclick="openPaginaListaDepespesas()" id="buttonListaDespesas">
+      Lista de Relatórios de Despesas
+    </button>
+
+    <div id="funcionarioModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="closeFuncionarioModal()">&times;</span>
+        <h2>Adicionar Funcionário</h2>
+        <form id="funcionarioForm">
+          <label for="nome">Nome:</label><br />
+          <input
+            type="text"
+            id="nome"
+            name="nome"
+            required
+            style="width: 100%"
+          /><br />
+          <label for="email">Email:</label><br />
+          <input
+            type="email"
+            id="email"
+            name="email"
+            required
+            style="width: 100%"
+          /><br />
+          <label for="cargo">Cargo:</label><br />
+          <select
+            id="funcionariosGerente"
+            required
+            style="width: 508px"
+            name="cargo"
+          >
+            <option value="Gerente">Gerente</option>
+            <option value="Diretor">Diretor</option>
+            <option value="Funcionario">Funcionario</option></select
+          ><br />
+          <label for="senha">Senha:</label><br />
+          <input
+            type="password"
+            id="senha"
+            name="senha"
+            required
+            style="width: 100%"
+          /><br /><br />
+          <button type="submit">Enviar</button>
+        </form>
+      </div>
+    </div>
+
+    <div id="despesaModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="closeDespesaModal()">&times;</span>
+        <h2>Cadastrar Despesa</h2>
+        <form id="despesaForm" enctype="multipart/form-data">
+          <label for="descricao">Descrição:</label><br />
+          <input
+            type="text"
+            id="descricao"
+            name="descricao"
+            required
+            style="width: 100%"
+          /><br />
+          <label for="valor">Valor:</label><br />
+          <input
+            type="number"
+            id="valor"
+            name="valor"
+            required
+            style="width: 100%"
+          /><br />
+          <label for="data">Data:</label><br />
+          <input
+            type="date"
+            id="data"
+            name="data"
+            required
+            style="width: 100%"
+          /><br />
+
+          <label for="arquivoPdf">Arquivo PDF:</label><br />
+          <input
+            type="file"
+            id="arquivoPdf"
+            name="arquivoPdf"
+            accept=".pdf"
+            required
+          /><br /><br />
+          <button type="submit">Enviar</button>
+        </form>
+      </div>
+    </div>
+
+    <table id="funcionariosTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nome</th>
+          <th>Email</th>
+          <th>Cargo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Os dados dos funcionários serão preenchidos aqui -->
+      </tbody>
+    </table>
+
+    <script>
+      async function carregarFuncionarios() {
+        try {
+          const response = await fetch("http://localhost:3000/funcionarios");
+          const funcionarios = await response.json();
+
+          const tableBody = document.querySelector("#funcionariosTable tbody");
+          tableBody.innerHTML = "";
+
+          funcionarios.forEach((funcionario) => {
+            const row = `
+                    <tr>
+                      <td>${funcionario.id}</td>
+                      <td>${funcionario.nome}</td>
+                      <td>${funcionario.email}</td>
+                      <td>${funcionario.cargo}</td>
+                    </tr>
+                  `;
+            tableBody.innerHTML += row;
+          });
+        } catch (error) {
+          console.error("Erro ao carregar funcionários:", error.message);
+        }
+      }
+
+      function openFuncionarioModal() {
+        document.getElementById("funcionarioModal").style.display = "block";
+      }
+
+      function closeFuncionarioModal() {
+        document.getElementById("funcionarioModal").style.display = "none";
+      }
+
+      // Funções para abrir e fechar a modal de cadastrar despesa
+      function openDespesaModal() {
+        document.getElementById("despesaModal").style.display = "block";
+      }
+
+      function closeDespesaModal() {
+        document.getElementById("despesaModal").style.display = "none";
+      }
+
+      function openPaginaListaDepespesas() {
+        const cargo = obterParametroConsulta("cargo");
+        const funcionarioId = obterParametroConsulta("funcionarioId");
+
+        window.location.href = `listaDespesas.html?cargo=${cargo}&funcionarioId=${funcionarioId}`;
+      }
+
+      // Função para enviar os dados do formulário para a API
+      async function adicionarFuncionario(event) {
+        event.preventDefault();
+        const form = document.getElementById("funcionarioForm");
+        const formData = new FormData(form);
+        const jsonData = {};
+        formData.forEach((value, key) => {
+          jsonData[key] = value;
+        });
+
+        try {
+          const response = await fetch("http://localhost:3000/funcionarios", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ ...jsonData }),
+          });
+          if (response.ok) {
+            closeFuncionarioModal(); // Fechar a modal após o envio bem-sucedido
+            await carregarFuncionarios(); // Recarregar a tabela de funcionários
+          } else {
+            throw new Error("Erro ao adicionar funcionário");
+          }
+        } catch (error) {
+          console.error("Erro ao adicionar funcionário:", error.message);
+        }
+      }
+
+      async function adicionarDespesa(event) {
+        event.preventDefault();
+
+        const form = document.getElementById("despesaForm");
+        const formData = new FormData(form);
+        const jsonData = {};
+        formData.forEach((value, key) => {
+          jsonData[key] = value;
+        });
+
+        try {
+          const response = await fetch("http://localhost:3000/despesas", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              ...jsonData,
+              funcionarioId: obterParametroConsulta("funcionarioId"),
+              status: "Pendente",
+            }),
+          });
+
+          if (response.ok) {
+            closeDespesaModal(); // Fechar a modal após o envio bem-sucedido
+          } else {
+            throw new Error("Erro ao adicionar despesa");
+          }
+        } catch (error) {
+          console.error("Erro ao adicionar despesa:", error.message);
+          alert("Erro ao adicionar despesa. Por favor, tente novamente.");
+        }
+      }
+
+      document
+        .getElementById("funcionarioForm")
+        .addEventListener("submit", adicionarFuncionario);
+
+      document
+        .getElementById("despesaForm")
+        .addEventListener("submit", adicionarDespesa);
+
+      function obterParametroConsulta(nome) {
+        const parametros = new URLSearchParams(window.location.search);
+        return parametros.get(nome);
+      }
+
+      function exibirCargo() {
+        const cargo = obterParametroConsulta("cargo");
+        if (cargo) {
+          const cargoElemento = document.getElementById("cargo");
+          if (cargoElemento) {
+            cargoElemento.textContent = cargo;
+          }
+
+          const cadastrarDespesaTitulo =
+            document.getElementById("cadastrarDespesa");
+
+          const buttonListaDespesas = document.getElementById(
+            "buttonListaDespesas"
+          );
+          if (cadastrarDespesaTitulo) {
+            if (cargo === "Funcionario") {
+              cadastrarDespesaTitulo.style.display = "block"; // Mostrar o título
+            } else {
+              cadastrarDespesaTitulo.style.display = "none"; // Ocultar o título
+            }
+          }
+
+          if (buttonListaDespesas) {
+            if (cargo === "Funcionario") {
+              buttonListaDespesas.style.display = "none";
+            } else {
+              buttonListaDespesas.style.display = "block";
+            }
+          }
+        }
+      }
+
+      function carregarPagina() {
+        exibirCargo();
+        carregarFuncionarios();
+      }
+
+      window.onload = carregarPagina;
+    </script>
+  </body>
+</html>

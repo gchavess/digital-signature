@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Listagem de Relatórios de Despesas</title>
+  </head>
+  <body>
+    <h1>Listagem de Relatórios de Despesas</h1>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Funcionário ID</th>
+          <th>Data</th>
+          <th>Descrição</th>
+          <th>Valor</th>
+          <th>Arquivo PDF</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="despesasBody">
+        <!-- As despesas serão preenchidas aqui -->
+      </tbody>
+    </table>
+
+    <script>
+      // Função para carregar as despesas
+      async function carregarDespesas() {
+        try {
+          const cargo = obterParametroConsulta("cargo");
+
+          let response;
+
+          if (cargo == "Gerente") {
+            response = await fetch("http://localhost:3000/despesas/pendentes");
+          } else if (cargo == "Diretor") {
+            response = await fetch("http://localhost:3000/despesas/assinados");
+          } else {
+            response = await fetch("http://localhost:3000/despesas");
+          }
+
+          const despesas = await response.json();
+
+          const despesasBody = document.getElementById("despesasBody");
+          despesasBody.innerHTML = "";
+
+          despesas.forEach((despesa) => {
+            let buttonHtmlAprovar = "";
+            let buttonHtmlReprovar = "";
+            if (cargo === "Gerente") {
+              buttonHtmlAprovar = `<button onclick="assinarRelatorio(${despesa.id}, 'Aprovado')">Aprovar</button>`;
+              buttonHtmlReprovar = `<button onclick="assinarRelatorio(${despesa.id}, 'Reprovado')">Reprovar</button>`;
+            }
+
+            const row = `
+    <tr>
+      <td>${despesa.id}</td>
+      <td>${despesa.funcionarioId}</td>
+      <td>${despesa.data}</td>
+      <td>${despesa.descricao}</td>
+      <td>${despesa.valor}</td>
+      <td>${despesa.arquivoPdf}</td>
+      <td>${despesa.status}</td>
+      <td>${buttonHtmlAprovar}</td>
+      <td>${buttonHtmlReprovar}</td>
+
+
+    </tr>
+  `;
+            despesasBody.innerHTML += row;
+          });
+        } catch (error) {
+          console.error("Erro ao carregar despesas:", error.message);
+          alert(
+            "Erro ao carregar despesas. Por favor, tente novamente mais tarde."
+          );
+        }
+      }
+
+      function obterParametroConsulta(nome) {
+        const parametros = new URLSearchParams(window.location.search);
+        return parametros.get(nome);
+      }
+
+      async function assinarRelatorio(id, status) {
+        const jsonData = {
+          status: status,
+          relatorioId: id,
+          gerenteId: obterParametroConsulta("funcionarioId"),
+        };
+
+        try {
+          const response = await fetch(
+            "http://localhost:3000/assinatura-digital",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(jsonData),
+            }
+          );
+          if (response.ok) {
+            await carregarDespesas();
+          } else {
+            throw new Error("Erro ao adicionar funcionário");
+          }
+        } catch (error) {
+          console.error("Erro ao adicionar funcionário:", error.message);
+          alert("Erro ao adicionar despesa. Por favor, tente novamente.");
+        }
+      }
+
+      // Chamar a função para carregar as despesas quando a página carregar
+      window.onload = carregarDespesas;
+    </script>
+  </body>
+</html>

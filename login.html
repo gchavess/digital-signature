@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login</title>
+  </head>
+  <body>
+    <h1>Login</h1>
+    <form id="loginForm">
+      <div>
+        <label for="email">E-mail:</label>
+        <input type="email" id="email" name="email" required />
+      </div>
+      <div>
+        <label for="senha">Senha:</label>
+        <input type="password" id="senha" name="senha" required />
+      </div>
+      <button type="submit">Entrar</button>
+
+      <div
+        style="
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          padding-top: 16px;
+        "
+      >
+        <span>Usuários padrões:</span>
+
+        <div>
+          <span>Email: diretor@gmail.com</span>
+          <span>Senha: 123</span>
+        </div>
+
+        <div>
+          <span>Email: gerente@gmail.com</span>
+          <span>Senha: 123</span>
+        </div>
+
+        <div>
+          <span>Email: funcionario@gmail.com</span>
+          <span>Senha: 123</span>
+        </div>
+      </div>
+    </form>
+
+    <script>
+      document
+        .getElementById("loginForm")
+        .addEventListener("submit", async function (event) {
+          event.preventDefault();
+
+          const email = document.getElementById("email").value;
+          const senha = document.getElementById("senha").value;
+
+          try {
+            const response = await fetch(
+              "http://localhost:3000/funcionarios/login",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ email, senha }),
+              }
+            );
+
+            if (!response.ok) {
+              throw new Error("E-mail ou senha inválidos");
+            }
+
+            // Extrair os dados JSON da resposta
+            const data = await response.json();
+
+            console.log("data", data);
+
+            // Agora você pode acessar os dados, incluindo o cargo
+            const cargo = data.cargo;
+
+            window.location.href = `dashboard.html?cargo=${cargo}&funcionarioId=${data.id}`;
+          } catch (error) {
+            console.error("Erro ao fazer login:", error.message);
+            alert("E-mail ou senha inválidos");
+          }
+        });
+    </script>
+  </body>
+</html>
